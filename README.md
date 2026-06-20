@@ -4,6 +4,10 @@ Autonomous B2B procurement agent with MCP-shielded supply chain automation.
 
 Built for Anakin Blitz Hackathon using the Wire API and Anakin Universal Scraper.
 
+## What It Does
+
+A Node.js bot that watches a supplier's inventory. If stock runs out, it searches the web for alternative suppliers, extracts their prices and stock status, checks permissions, and prepares a purchase order -- all without exposing passwords to the AI.
+
 ## Problem
 
 Geopolitical shocks can cause sudden stockouts of critical materials in laboratory and industrial supply chains. Manual alternative sourcing is slow, error-prone, and cannot operate 24/7.
@@ -119,6 +123,12 @@ docs/
 - **Logging**: Pino structured logger
 - **Testing**: Vitest
 - **Security**: Agent-native ReBAC, credential-free identity injection
+
+## Deployment
+
+Instead of running on my machine 24/7, I wanted this hosted somewhere free. Tried Railway -- trial expired. Tried Fly.io and Koyeb -- both need a credit card, which I'm not giving. So I hosted it on GitHub Actions as a scheduled cron job running every 6 hours. Results are saved as downloadable Excel artifacts.
+
+To trigger it manually: go to the repo Actions tab, select **Autono-Procure Monitor**, and click **Run workflow**.
 
 ## License
 
