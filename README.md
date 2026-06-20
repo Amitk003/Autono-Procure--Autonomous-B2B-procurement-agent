@@ -76,7 +76,7 @@ npm start
 
 ### Wire API
 
-The [Anakin Wire API](https://docs.anakin.io/wire) provides programmatic REST access to B2B supplier systems -- login, inventory search, and purchase workflows -- screen-scraping and browser automation not required.
+The [Anakin Wire API](https://anakin.io/docs/api-reference/wire) provides programmatic REST access to B2B supplier systems -- login, inventory search, and purchase workflows -- screen-scraping and browser automation not required.
 
 Instead of emulating a user in a web browser, the agent sends JSON requests to the Wire API. The Wire API manages supplier-specific session handling (CAPTCHAs, SSO, session rotation) transparently. The agent authenticates once with a credential identity string from the Anakin dashboard, then calls:
 
@@ -87,7 +87,7 @@ The key security property: the credential identity is a reference token, not a u
 
 ### Anakin Universal Scraper
 
-The [Anakin Scraper API](https://docs.anakin.io/scraper) handles the inverse problem: extracting structured data from arbitrary supplier websites that have no API.
+The [Anakin Scraper API](https://anakin.io/docs/api-reference/url-scraper) handles the inverse problem: extracting structured data from arbitrary supplier websites that have no API.
 
 When the agent discovers an unknown supplier URL (from search results), it sends that URL to `POST /v1/scrape`. The scraper internally runs a handler chain with automatic fallback:
 
