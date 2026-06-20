@@ -11,10 +11,6 @@ const TS = new Date().toISOString().replace(/[:.]/g, "-");
 
 if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
 
-export function runId(): string {
-  return TS;
-}
-
 export async function saveToExcel(
   phase: string,
   rows: Record<string, unknown>[],

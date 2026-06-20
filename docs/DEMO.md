@@ -2,7 +2,7 @@
 
 ## End-to-End Demo Flow
 
-This demo simulates a geopolitical supply chain shock that causes a primary B2B supplier stockout, triggering the autonomous procurement agent.
+This demo searches the web for alternative suppliers for a given lab SKU using the Anakin Search API, extracts structured data from real supplier pages using the Anakin URL Scraper, validates permissions via ReBAC, and prepares a credential-free Wire API order payload.
 
 ### Prerequisites
 
@@ -26,77 +26,69 @@ npm run demo
 
 ### Demo Walkthrough
 
-#### Phase 1: Primary Supplier Monitoring (Wire API)
-The agent polls the primary supplier's inventory using the Wire API `b2b_check_inventory` action. The initial snapshot shows `in_stock` status with 250 units available.
+#### Phase 1: Search for Alternative Suppliers (Anakin Search API)
+The agent searches the web for suppliers carrying the target SKU using the Anakin Search API. Three search queries are generated dynamically:
 
-```
-Initial inventory snapshot:
-{
-  "sku": "LAB-GRADE-ACETONE-99.9",
-  "status": "in_stock",
-  "quantity": 250,
-  "lastUpdated": "2026-06-20T10:00:00.000Z",
-  "raw": { "source": "wire_api", "stockStatus": "in_stock" }
-}
-```
-
-#### Phase 2: Stockout Detection (Trigger)
-A simulated geopolitical event causes the primary supplier's inventory to drop to zero. The agent detects the state transition from `in_stock` to `out_of_stock`.
-
-**Key Innovation**: The Wire API returns clean JSON - no HTML parsing needed. This saves LLM tokens and reduces latency.
-
-#### Phase 3: Agentic Discovery via AnakinScraper
-The agent invokes the Anakin Universal Scraper handler chain to find alternative suppliers:
-
-1. **HTTP fetch** - Fast path for simple pages
-2. **Camoufox anti-detect browser** - For JavaScript-heavy or protected sites
-3. **External API fallback** - Last resort
-
-The search queries are dynamically generated:
 - `{SKU} laboratory supplier buy online`
 - `{SKU} chemical supplier price stock`
 - `buy {SKU} alternative suppliers industrial`
 
-#### Phase 4: Structured Data Extraction (Gemini AI)
-The scraper uses the `generateJson: true` flag to pass unstructured web content through Gemini AI for structured JSON extraction at the point of data capture.
+Results are deduplicated and limited to configurable maximum (default 10). All found supplier URLs are saved to an Excel file.
+
+**Key Innovation**: The Anakin Search API returns clean, structured results with URLs, titles, and snippets - no raw HTML parsing needed.
+
+#### Phase 2: Structured Data Extraction (Anakin URL Scraper + Gemini AI)
+Each supplier URL is scraped using the Anakin URL Scraper. The `generateJson: true` flag passes unstructured web content through Gemini AI for structured JSON extraction at the point of data capture.
+
+Key fields extracted:
+- Price and currency
+- Stock/availability status
+- Minimum order quantity
+- Supplier name
 
 **Key Innovation**: Instead of scraping raw HTML and parsing it separately, Gemini extracts structured data (price, stock status, supplier name) directly during the scrape.
 
-#### Phase 5: Zero-Trust ReBAC Permission Validation
-Before executing any action, the agent validates:
+#### Phase 3: ReBAC Permission Validation
+Before any order action, the agent validates two permissions against Relationship-Based Access Control (ReBAC) policy:
+
 1. `mcp:tools:write` - Permission to execute Wire API write actions
 2. `mcp:identity:use` - Permission to use identity credentials
 
-**Key Innovation**: This implements a Relationship-Based Access Control (ReBAC) model directly in the agent's execution loop, preventing unauthorized actions even if the LLM is compromised.
+**Key Innovation**: This implements ReBAC directly in the agent's execution loop, preventing unauthorized actions even if the LLM is compromised.
 
-#### Phase 6: Identity Injection & Mock Order
-The agent resolves the correct identity credential for the chosen alternative supplier and injects it into the Wire API call. No plaintext credentials ever enter the LLM context.
+#### Phase 4: Identity Injection & Wire Order
+If Wire identities are configured in the dashboard, the agent resolves the correct identity credential for the chosen alternative supplier and injects it into the Wire API call payload. No plaintext credentials ever enter the LLM context.
+
+When no identities are configured, the demo logs the skipped step and saves an empty order record.
+
+**Key Innovation**: Named identity references replace plaintext credentials. The agent passes only `credential_id` and `_identity_ref` - Wire's backend resolves the actual session.
+
+### Output Files
+
+All results are saved as Excel (.xlsx) files in the `data/` directory:
 
 ```
-Wire action payload (identity injected, no plaintext credentials):
-{
-  "action": "add_to_cart",
-  "sku": "LAB-GRADE-ACETONE-99.9",
-  "quantity": 5,
-  "credential_id": "cred-mock-lab-supplier",
-  "_identity_ref": "identity-sigma-aldrich"
-}
+data/
+  |- 2026-06-20T15-30-00_01_search_results.xlsx   # all supplier URLs
+  |- 2026-06-20T15-30-05_02_supplier_data.xlsx     # extracted pricing & stock data
+  |- 2026-06-20T15-30-05_03_order_payload.xlsx     # order payload with identity ref
 ```
 
 ### Expected Output
 
-The simulation prints a complete trace of all 6 phases with structured JSON at each step. The final summary confirms:
-- [OK] Wire API supplier monitoring
-- [OK] Stockout detection triggered
-- [OK] AnakinScraper handler chain invoked
-- [OK] Gemini AI structured extraction
-- [OK] ReBAC permission validation passed
-- [OK] Identity injection - no plaintext credentials exposed
+The simulation prints a complete trace with structured JSON at each step:
+
+```
+[OK] Anakin Search API - real web search for suppliers
+[OK] Anakin Scraper API - real page extraction
+[OK] ReBAC permission validation
+[OK] Identity injection (no plaintext in LLM context)
+```
 
 ### Recording Tips
 
 1. Start the demo with `npm run demo`
-2. Scroll through each phase slowly
+2. Scroll through each phase slowly - show the actual supplier URLs being discovered
 3. Pause at the ReBAC validation step to highlight the security innovation
-4. End on the identity injection payload to show no plaintext credentials
+4. End on the saved Excel files in the `data/` directory
 5. Keep the submission under 3 minutes

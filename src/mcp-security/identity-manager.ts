@@ -4,26 +4,11 @@ import type { IdentityCredential } from "../types.js";
 
 const logger = pino({ level: config.log.level, name: "identity-manager" });
 
-const MOCK_IDENTITIES: IdentityCredential[] = [
-  {
-    id: "identity-sigma-aldrich",
-    label: "Sigma-Aldrich Corporate Account",
-    credentialId: config.wire.credentialId || "cred-mock-lab-supplier",
-    catalog: "sigma-aldrich",
-  },
-  {
-    id: "identity-thermo-fisher",
-    label: "Thermo Fisher Scientific Account",
-    credentialId: "cred-thermo-fisher",
-    catalog: "thermo-fisher",
-  },
-];
-
 export class IdentityManager {
   private identities: IdentityCredential[];
 
   constructor(identities?: IdentityCredential[]) {
-    this.identities = identities ?? MOCK_IDENTITIES;
+    this.identities = identities ?? [];
   }
 
   async getIdentityForSupplier(supplierName: string): Promise<IdentityCredential | null> {
@@ -39,7 +24,7 @@ export class IdentityManager {
     }
 
     logger.warn({ supplier: supplierName }, "no identity found for supplier");
-    return this.identities[0];
+    return null;
   }
 
   async injectIdentity(actionPayload: Record<string, unknown>, credential: IdentityCredential): Promise<Record<string, unknown>> {

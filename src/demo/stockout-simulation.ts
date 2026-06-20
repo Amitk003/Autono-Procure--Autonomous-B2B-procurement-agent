@@ -34,7 +34,7 @@ async function main(): Promise<void> {
   section("PHASE 1: Search for real alternative suppliers via Anakin Search API");
   logger.info("Searching the web for suppliers carrying: %s", SKU);
 
-  const urls = await scraper.searchAlternativeSuppliers(SKU, "Acetone 99.9% Laboratory Grade");
+  const urls = await scraper.searchAlternativeSuppliers(SKU);
 
   if (urls.length === 0) {
     logger.warn("No supplier URLs found.");
@@ -120,9 +120,10 @@ async function main(): Promise<void> {
         Timestamp: new Date().toISOString(),
       });
     } else {
+      logger.info("No identity resolved for supplier - identity injection skipped (expected if no Wire identities configured)");
       orderRows.push({
         SKU,
-        Action: "N/A",
+        Action: "SKIPPED",
         Quantity: 0,
         Identity_Ref: "NO_IDENTITY_RESOLVED",
         Credential_ID: "N/A",

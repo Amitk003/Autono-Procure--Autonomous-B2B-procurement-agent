@@ -15,11 +15,10 @@ describe("IdentityManager", () => {
     expect(identity!.id).toBe("id-1");
   });
 
-  it("should return first identity when no match found", async () => {
+  it("should return null when no identity matches the supplier", async () => {
     const manager = new IdentityManager(testIdentities);
     const identity = await manager.getIdentityForSupplier("Unknown Supplier Inc.");
-    expect(identity).not.toBeNull();
-    expect(identity!.id).toBe("id-1");
+    expect(identity).toBeNull();
   });
 
   it("should inject identity into action payload", async () => {

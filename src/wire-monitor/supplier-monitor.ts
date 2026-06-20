@@ -17,8 +17,7 @@ export class SupplierMonitor {
     logger.info({ sku: sku.sku, supplier: sku.supplierName }, "checking inventory");
 
     try {
-      const actionId = await this.resolveInventoryAction(sku.supplierUrl);
-      const result = await this.client.wire(actionId, {
+      const result = await this.client.wire("b2b_check_inventory", {
         url: sku.supplierUrl,
         sku: sku.sku,
         credentialId: config.wire.credentialId || undefined,
@@ -39,10 +38,6 @@ export class SupplierMonitor {
 
   getCurrentStatus(): InventorySnapshot | null {
     return this.currentStatus;
-  }
-
-  private async resolveInventoryAction(_supplierUrl: string): Promise<string> {
-    return "b2b_check_inventory";
   }
 
   private parseInventoryResponse(sku: SupplierSKU, raw: unknown): InventorySnapshot {

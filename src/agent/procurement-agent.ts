@@ -4,7 +4,6 @@ import { SupplierMonitor } from "../wire-monitor/index.js";
 import { AnakinScraperClient } from "../anakin-scraper/index.js";
 import { ReBACChecker } from "../mcp-security/rebac-checker.js";
 import { IdentityManager } from "../mcp-security/identity-manager.js";
-import { PROCUREMENT_AGENT_PROMPT } from "./system-prompt.js";
 import type {
   SupplierSKU,
   InventorySnapshot,
@@ -17,12 +16,12 @@ const logger = pino({ level: config.log.level, name: "procurement-agent" });
 
 const PRIMARY_SKU: SupplierSKU = {
   sku: config.supplier.primarySku,
-  name: "Acetone 99.9% Laboratory Grade",
-  supplierName: "Primary Lab Supply Co.",
+  name: config.supplier.primaryName,
+  supplierName: config.supplier.primaryVendor,
   supplierUrl: config.supplier.primaryUrl,
-  minOrderQuantity: 1,
-  unitPrice: 45.0,
-  currency: "USD",
+  minOrderQuantity: config.supplier.minOrderQty,
+  unitPrice: config.supplier.unitPrice,
+  currency: config.supplier.currency,
 };
 
 export class ProcurementAgent {
@@ -39,10 +38,6 @@ export class ProcurementAgent {
     this.scraper = new AnakinScraperClient();
     this.rebac = new ReBACChecker();
     this.identityManager = new IdentityManager();
-  }
-
-  getSystemPrompt(): string {
-    return PROCUREMENT_AGENT_PROMPT;
   }
 
   async executeProcurementCycle(): Promise<void> {
@@ -97,7 +92,7 @@ export class ProcurementAgent {
     }
     logger.info("write permission granted");
 
-    const urls = await this.scraper.searchAlternativeSuppliers(sku.sku, sku.name);
+    const urls = await this.scraper.searchAlternativeSuppliers(sku.sku);
     if (urls.length === 0) {
       logger.warn("no alternative suppliers found");
       return;
@@ -148,6 +143,7 @@ export class ProcurementAgent {
   private buildAlternatives(sku: SupplierSKU, extracted: Array<Record<string, unknown>>): AlternativeSupplier[] {
     const alternatives: AlternativeSupplier[] = [];
     const seen = new Set<string>();
+    const range = config.agent.deliveryDaysMax - config.agent.deliveryDaysMin;
 
     for (const item of extracted) {
       const name = this.extractField(item, ["supplierName", "name", "supplier"]) as string;
@@ -165,9 +161,9 @@ export class ProcurementAgent {
         unitPrice: price,
         currency: sku.currency,
         minOrderQuantity: sku.minOrderQuantity,
-        estimatedDeliveryDays: Math.floor(Math.random() * 10) + 5,
+        estimatedDeliveryDays: config.agent.deliveryDaysMin + Math.floor(Math.random() * range),
         stockStatus: "in_stock" as StockStatus,
-        confidence: 0.85,
+        confidence: config.agent.defaultConfidence,
       });
     }
 
